@@ -219,6 +219,13 @@ flutter build apk --release --dart-define-from-file=../.env
 For USB instead of a tunnel, set `API_BASE=http://127.0.0.1:3000` and run
 `adb reverse tcp:3000 tcp:3000`.
 
+On Windows, `start-all.bat` starts Docker, Postgres, the API and ngrok in one
+go. Run it from the repository root:
+
+```bat
+start-all.bat
+```
+
 ## Quickstart
 
 **Database** (static GTFS + realtime archive, local dev):
