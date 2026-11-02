@@ -18,6 +18,11 @@
 
 set -e
 cd "$(dirname "$0")/.."
+if [ -f .env ]; then
+  set -a
+  . .env
+  set +a
+fi
 
 DAYS=(2026-08-10 2026-08-11 2026-08-12 2026-08-13 2026-08-14 2026-08-15 2026-08-16)
 LOG="scripts/process-week.log"
@@ -36,7 +41,7 @@ echo ""
 # --- one-time setup ---
 
 echo "=== $(date) : creating stop passages table (if not exists) ==="
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -f /db/schema_stop_passages.sql
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -f /db/schema_stop_passages.sql
 
 echo ""
 
@@ -51,7 +56,7 @@ for DAY in "${DAYS[@]}"; do
     # Step 1: clear realtime tables.
     # CASCADE propagates: realtime_frame -> vehicle_position -> vehicle_progress
     echo "--- [$DAY] step 1/7: clearing realtime tables ---"
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c \
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c \
       "TRUNCATE realtime_frame RESTART IDENTITY CASCADE;"
 
     # Step 2: load this day's frames.
@@ -62,7 +67,7 @@ for DAY in "${DAYS[@]}"; do
     # This also rebuilds route_shape_lookup WITH route_length_m (needed
     # for the matcher's lap-restart detection).
     echo "--- [$DAY] step 3/7: computing raw distance-along-route ---"
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb \
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" \
       -f /db/compute_vehicle_raw_progress_chunked.sql
 
     # Step 4: run the matcher.
@@ -71,7 +76,7 @@ for DAY in "${DAYS[@]}"; do
 
     # Step 5: verify Phase 2 results.
     echo "--- [$DAY] step 5/7: verifying Phase 2 ---"
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
       SELECT count(*) AS total_readings,
              count(*) FILTER (WHERE accepted) AS accepted,
              count(*) FILTER (WHERE NOT accepted) AS rejected,
@@ -81,7 +86,7 @@ for DAY in "${DAYS[@]}"; do
 
     echo ""
     echo "worst rejected run (should be much less than 2837):"
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
       WITH runs AS (
         SELECT vehicle_id, accepted,
           ROW_NUMBER() OVER (PARTITION BY vehicle_id ORDER BY frame_id) -
@@ -96,24 +101,24 @@ for DAY in "${DAYS[@]}"; do
     # that caused Bug #2 to never be applied before).
     echo ""
     echo "route_shape_lookup columns (must include route_length_m):"
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c \
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c \
       "\d route_shape_lookup"
 
     # Step 6: extract stop passages.
     echo "--- [$DAY] step 6/7: extracting stop passages ---"
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb \
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" \
       -f /db/extract_stop_passages.sql
 
     # Step 7: report.
     echo "--- [$DAY] step 7/7: progress so far ---"
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
       SELECT day, count(*) AS passages,
              count(DISTINCT vehicle_id) AS vehicles,
              count(DISTINCT route_id) AS routes
       FROM observed_stop_passage
       GROUP BY day ORDER BY day;"
 
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
       SELECT pg_size_pretty(pg_database_size('wimb')) AS db_size;"
 
     echo ""
@@ -127,7 +132,7 @@ echo "========================================================================"
 
 echo ""
 echo "--- final summary ---"
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
   SELECT day,
          to_char(day, 'Dy') AS dow,
          count(*) AS passages,
@@ -137,7 +142,7 @@ MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
   FROM observed_stop_passage
   GROUP BY day ORDER BY day;"
 
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
   SELECT count(*) AS total_passages,
          count(DISTINCT day) AS days,
          count(DISTINCT vehicle_id) AS vehicles,
@@ -145,7 +150,7 @@ MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
          count(DISTINCT stop_id) AS stops
   FROM observed_stop_passage;"
 
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
   SELECT pg_size_pretty(pg_database_size('wimb')) AS final_db_size;"
 
 echo ""

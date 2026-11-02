@@ -21,7 +21,7 @@ const path = require('path');
 const zlib = require('zlib');
 const { transit_realtime } = require('gtfs-realtime-bindings');
 
-// Archive lives outside the repo on purpose - see AGENTS.md section 9.
+// Archive lives outside the repo on purpose - see CLAUDE.md section 9.
 const DATA_ROOT = process.env.DATA_ROOT || path.join(process.cwd(), 'data');
 const day = process.argv[2] || '2026-08-09';
 

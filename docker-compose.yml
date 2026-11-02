@@ -3,15 +3,15 @@ services:
     image: postgis/postgis:17-3.5
     container_name: wimb-db
     environment:
-      POSTGRES_DB: wimb
-      POSTGRES_USER: wimb
-      POSTGRES_PASSWORD: wimb_local_dev
+      POSTGRES_DB: ${POSTGRES_DB:-wimb}
+      POSTGRES_USER: ${POSTGRES_USER:-wimb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wimb_local_dev}
       # Delhi feed times are local; keep the server in UTC and convert
       # explicitly so nothing silently shifts.
       TZ: UTC
       PGTZ: UTC
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Read-only so a bad script can never touch the source feed.
@@ -28,7 +28,7 @@ services:
       - -c
       - max_wal_size=4GB
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wimb -d wimb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wimb} -d ${POSTGRES_DB:-wimb}"]
       interval: 5s
       timeout: 5s
       retries: 20

@@ -194,6 +194,31 @@ docker-compose.yml             PostGIS for local dev, plus Adminer (a plain
 package.json                   npm scripts for tools, api, and test runner
 ```
 
+## Configuration
+
+Copy `.env.example` to `.env` and fill in your own values. `.env` is
+gitignored; `.env.example` is the committed template.
+
+| Key | Used by | Meaning |
+|---|---|---|
+| `API_BASE` | Flutter build | API address the app calls |
+| `DATA_ROOT` | tools | recorded `.pb.gz` archive |
+| `PROFILE_GTFS_ROOT` | `profile-gtfs` | static GTFS snapshot |
+| `DATABASE_URL` | API and checks | Postgres connection |
+| `POSTGRES_*` | Docker Compose | local database |
+| `RECORDER_HOST`, `SSH_KEY` | pipeline scripts | recorder VM |
+
+The Node scripts load `.env` automatically through
+`--env-file-if-exists=.env`. Flutter reads it at build time:
+
+```bash
+cd app
+flutter build apk --release --dart-define-from-file=../.env
+```
+
+For USB instead of a tunnel, set `API_BASE=http://127.0.0.1:3000` and run
+`adb reverse tcp:3000 tcp:3000`.
+
 ## Quickstart
 
 **Database** (static GTFS + realtime archive, local dev):
@@ -237,11 +262,12 @@ which a phone reaches over USB after:
 adb reverse tcp:3000 tcp:3000
 ```
 
-For a phone on the same network, or a tunnel, pass the address at build time:
+For a phone on the same network, or a tunnel, set `API_BASE` in `.env` and
+build with the file:
 
 ```bash
 cd app
-flutter build apk --release --dart-define=API_BASE=http://<host>:3000
+flutter build apk --release --dart-define-from-file=../.env
 ```
 
 ## Running & Verification

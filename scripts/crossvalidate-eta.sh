@@ -17,6 +17,11 @@
 
 set -e
 cd "$(dirname "$0")/.."
+if [ -f .env ]; then
+  set -a
+  . .env
+  set +a
+fi
 
 DAYS=(2026-08-10 2026-08-11 2026-08-12 2026-08-13 2026-08-14 2026-08-15 2026-08-16)
 LOG="scripts/crossvalidate-eta.log"
@@ -29,13 +34,13 @@ echo "=== $(date) : ETA CROSS-VALIDATION, 7 FOLDS ==="
 echo "========================================================================"
 
 echo "--- creating results table if needed ---"
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb \
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" \
   -f /db/schema_eta_calibration.sql
 
 for DAY in "${DAYS[@]}"; do
     echo ""
     echo "=== $(date) : fold - holding out $DAY ==="
-    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb \
+    MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" \
       -v held_out_day="$DAY" -f /db/crossvalidate_eta.sql
 done
 
@@ -47,7 +52,7 @@ echo "========================================================================"
 echo ""
 echo "--- Q1: does 'sum means, not medians' hold on EVERY day? ---"
 echo "(mae_mean should be LOWER than mae_median at 5+ hops, on every row)"
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
 SELECT held_out_day, to_char(held_out_day,'Dy') AS dow, n_hops,
        round(mae_mean_sum_s::numeric,1)   AS mae_mean,
        round(mae_median_sum_s::numeric,1) AS mae_median,
@@ -59,7 +64,7 @@ ORDER BY n_hops, held_out_day;"
 
 echo ""
 echo "--- Q2: how stable are the confidence bands across days? ---"
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
 SELECT n_hops,
        count(*) AS folds,
        round(avg(p10_resid_s)::numeric,0) AS avg_p10,
@@ -73,7 +78,7 @@ GROUP BY n_hops ORDER BY n_hops;"
 
 echo ""
 echo "--- Q3: honest average performance across all 7 days ---"
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
 SELECT n_hops,
        sum(journeys) AS total_journeys,
        round(avg(avg_actual_s)::numeric,0)     AS avg_journey_s,
@@ -86,7 +91,7 @@ GROUP BY n_hops ORDER BY n_hops;"
 
 echo ""
 echo "--- was the original held-out day (Thu Aug 13) unrepresentative? ---"
-MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U wimb -d wimb -c "
+MSYS_NO_PATHCONV=1 docker exec wimb-db psql -U "${POSTGRES_USER:-wimb}" -d "${POSTGRES_DB:-wimb}" -c "
 SELECT n_hops,
        round(avg(mae_mean_sum_s) FILTER (WHERE held_out_day =  '2026-08-13')::numeric,1) AS thursday_mae,
        round(avg(mae_mean_sum_s) FILTER (WHERE held_out_day <> '2026-08-13')::numeric,1) AS other_days_mae,

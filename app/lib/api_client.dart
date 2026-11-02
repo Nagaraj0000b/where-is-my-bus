@@ -12,16 +12,17 @@ import 'offline_transit_pack.dart';
 // A phone cannot reach "localhost" and mean the laptop - to the phone,
 // localhost is the phone itself.
 //
-// The API address is a build-time setting. The default is the local Fastify
-// server, which a phone can reach over USB with:
+// The API address is not hardcoded here. It comes from the repository's
+// .env file at build time:
+//
+//   cd app
+//   flutter build apk --release --dart-define-from-file=../.env
+//
+// API_BASE in that file is the tunnel or LAN address for the phone. With no
+// .env, the default below is the local Fastify server, which a phone can
+// reach over USB with:
 //
 //   adb reverse tcp:3000 tcp:3000
-//
-// For a phone on the same network, or a tunnel, pass the address at build:
-//
-//   flutter build apk --release --dart-define=API_BASE=http://<host>:3000
-//
-// No live tunnel address is committed to this repository.
 const _fixedApiBase = String.fromEnvironment(
   'API_BASE',
   defaultValue: 'http://127.0.0.1:3000',
@@ -38,8 +39,11 @@ bool _hasResolvedUrl = false;
 Future<String> getApiBaseUrl() async {
   if (_hasResolvedUrl) return apiBaseUrl;
 
-  final candidates = [
+  const local = 'http://127.0.0.1:3000';
+  final candidates = <String>[
     _fixedApiBase,
+    // Keep the USB fallback unless the configured address already is it.
+    if (_fixedApiBase != local) local,
   ];
 
   for (final base in candidates) {

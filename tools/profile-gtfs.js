@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const ROOT = process.argv[2] || 'path.join(process.cwd(), 'delhi_buses_static_gtfs_v1')';
+const ROOT = process.argv[2] || 'process.env.PROFILE_GTFS_ROOT || path.join(process.cwd(), 'delhi_buses_static_gtfs_v1')';
 
 function splitCsv(line) {
   // These files have no quoted fields with commas in the columns we touch,
