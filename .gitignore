@@ -1,0 +1,57 @@
+# Never commit the key
+.env
+.ngrok-token
+
+# The archive lives outside the repo (DATA_ROOT), but guard against
+# anyone pointing it here by accident. Root only: the app's bundled
+# offline database lives under app/assets/data and must be committed.
+/data/
+*.pb
+*.pb.gz
+*.jsonl
+
+node_modules/
+
+# Run logs from the API and the Flutter tooling. Regenerated every run,
+# sometimes hundreds of KB, and of no value to anyone reading the history.
+*.log
+
+# Local helper the browser preview needs; machine-specific absolute path.
+app/run_web.bat
+
+# The static GTFS snapshot. stop_times.txt alone is 151 MB, which is over
+# GitHub's 100 MB hard limit for a single file - this cannot be committed even
+# if you wanted to. Keep the zips somewhere outside the repo and reload with
+# db/load.sql. docs/project-report.md describes what was in this one.
+delhi_buses_static_gtfs_v1/
+__MACOSX/
+
+# ---------------------------------------------------------------------------
+# This published version keeps source and the assets the app needs. Build
+# outputs, the APK, presentation decks, local tooling and the live deployment
+# runbook stay out.
+# ---------------------------------------------------------------------------
+*.apk
+MidSem PPT.pdf
+app/screen2.png
+app/assets/offline_transit.db
+
+# Agent and editor scratch.
+.ua/
+.opencode/
+.claude/
+.vscode/
+scratch/
+find_port.py
+
+# The live recorder runbook contains Azure access details.
+recorder/DEPLOY.md
+
+# This version targets Android and web (the two builds that are demonstrated).
+# The other platform shells can be regenerated with:
+#   flutter create --platforms=ios,macos,linux,windows .
+app/ios/
+app/macos/
+app/linux/
+app/windows/
+

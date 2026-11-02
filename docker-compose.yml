@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: wimb-db
+    environment:
+      POSTGRES_DB: wimb
+      POSTGRES_USER: wimb
+      POSTGRES_PASSWORD: wimb_local_dev
+      # Delhi feed times are local; keep the server in UTC and convert
+      # explicitly so nothing silently shifts.
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Read-only so a bad script can never touch the source feed.
+      - ./delhi_buses_static_gtfs_v1:/gtfs:ro
+      - ./db:/db:ro
+    shm_size: 1gb
+    command:
+      # 3.9M-row COPY plus index builds. Defaults are too small for this.
+      - postgres
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - work_mem=64MB
+      - -c
+      - max_wal_size=4GB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wimb -d wimb"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # A plain web page for looking at the database - browse tables, see row
+  # counts, run a query and see the result as a table, all by clicking
+  # rather than typing psql commands. Does not touch or slow down the
+  # database itself; it is just a viewer.
+  adminer:
+    image: adminer
+    container_name: wimb-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:

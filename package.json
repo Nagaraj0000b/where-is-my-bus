@@ -1,0 +1,37 @@
+{
+  "name": "where-is-my-bus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bus tracking for Delhi with honest uncertainty. Analysis tools.",
+  "scripts": {
+    "peek": "node tools/peek-frame.js",
+    "scan-archive": "node tools/scan-archive.js",
+    "profile-gtfs": "node tools/profile-gtfs.js",
+    "load-realtime": "node tools/load-realtime.js",
+    "match-vehicle-progress": "node tools/match-vehicle-progress.js",
+    "check-eta": "node api/check-eta.ts",
+    "api": "node api/src/server.ts",
+    "test-api": "node api/test-api.ts",
+    "check-journey": "node api/check-journey.ts",
+    "check-auth": "node api/check-auth.ts",
+    "check-crowdsource": "node api/check-crowdsource.ts",
+    "test-coordination": "node tools/test-arrival-alarm-coordination.js",
+    "check-all": "node api/check-eta.ts && node api/check-journey.ts && node api/check-auth.ts && node api/check-crowdsource.ts",
+    "test-all": "node api/check-eta.ts && node api/check-journey.ts && node api/check-auth.ts && node api/check-crowdsource.ts && node api/test-api.ts && node tools/test-arrival-alarm-coordination.js",
+    "bench": "node api/bench.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "fastify": "^5.12.1",
+    "gtfs-realtime-bindings": "^1.1.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.2.0",
+    "@types/pg": "^8.23.1",
+    "typescript": "^7.0.2"
+  },
+  "type": "module"
+}
